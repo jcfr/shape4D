@@ -40,27 +40,28 @@ if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
     set(_env_script ${CMAKE_BINARY_DIR}/${proj}_Env.cmake)
     ExternalProject_Write_SetBuildEnv_Commands(${_env_script})
 
-    set(_configure_cflags)
-    #
-    # To fix compilation problem: relocation R_X86_64_32 against `a local symbol' can not be
-    # used when making a shared object; recompile with -fPIC
-    # See http://www.cmake.org/pipermail/cmake/2007-May/014350.html
-    #
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8) # 64-bit
-      set(_configure_cflags "-fPIC")
-    endif()
-
     # configure step
-    set(_configure_script ${CMAKE_BINARY_DIR}/${proj}_configure_step.cmake)
-    file(WRITE ${_configure_script}
+    set(_configure_float_script ${CMAKE_BINARY_DIR}/${proj}_configure_float_step.cmake)
+    file(WRITE ${_configure_float_script}
 "include(\"${_env_script}\")
 set(${proj}_WORKING_DIR \"${FFTW_SOURCE_DIR}\")
 ExternalProject_Execute(${proj} \"configure\" sh configure
-  --prefix=${FFTW_build} --with-cflags=${_configure_cflags}
-  --enable-shared --enable-static=no
+  --prefix=${FFTW_build}
+  --enable-shared --enable-static=no --enable-float --enable-type-prefix
   )
 ")
-    set(FFTW_CONFIGURE_COMMAND ${CMAKE_COMMAND} -P ${_configure_script})
+    set(FFTWF_CONFIGURE_COMMAND ${CMAKE_COMMAND} -P ${_configure_float_script})
+
+    set(_configure_script_double ${CMAKE_BINARY_DIR}/${proj}_configure_double_step.cmake)
+    file(WRITE ${_configure_script_double}
+"include(\"${_env_script}\")
+set(${proj}_WORKING_DIR \"${FFTW_SOURCE_DIR}\")
+ExternalProject_Execute(${proj} \"configure\" sh configure
+  --prefix=${FFTW_build}
+  --enable-shared --enable-static=no --enable-type-prefix
+  )
+")
+    set(FFTWD_CONFIGURE_COMMAND ${CMAKE_COMMAND} -P ${_configure_script_double})
 
     # build step
     set(_build_script ${CMAKE_BINARY_DIR}/${proj}_build_step.cmake)
@@ -80,19 +81,34 @@ ExternalProject_Execute(${proj} \"install\" make install)
 ")
     set(FFTW_INSTALL_COMMAND ${CMAKE_COMMAND} -P ${_install_script})
 
-
+    # Floats
+    ExternalProject_Add(${proj}F
+        ${${proj}_EP_ARGS}
+        URL ${DOWNLOAD_URL}
+        UPDATE_COMMAND "" # Disable update
+        SOURCE_DIR ${FFTW_SOURCE_DIR}
+        BUILD_IN_SOURCE ${FFTW_BUILD_IN_SOURCE}
+        CONFIGURE_COMMAND ${FFTWF_CONFIGURE_COMMAND}
+        BUILD_COMMAND ${FFTW_BUILD_COMMAND}
+        INSTALL_COMMAND ${FFTW_INSTALL_COMMAND}
+        DEPENDS
+          ${${proj}_DEPENDS}
+    )
+    
+    # Doubles
     ExternalProject_Add(${proj}
         ${${proj}_EP_ARGS}
         URL ${DOWNLOAD_URL}
         UPDATE_COMMAND "" # Disable update
         SOURCE_DIR ${FFTW_SOURCE_DIR}
         BUILD_IN_SOURCE ${FFTW_BUILD_IN_SOURCE}
-        CONFIGURE_COMMAND ${FFTW_CONFIGURE_COMMAND}
+        CONFIGURE_COMMAND ${FFTWD_CONFIGURE_COMMAND}
         BUILD_COMMAND ${FFTW_BUILD_COMMAND}
         INSTALL_COMMAND ${FFTW_INSTALL_COMMAND}
         DEPENDS
           ${${proj}_DEPENDS}
     )
+    
     set(${proj}_ROOT ${CMAKE_BINARY_DIR}/${proj}-build)
     set(INSTALL_LIBRARIES
         ${${proj}_ROOT}/lib/libfftw3.so

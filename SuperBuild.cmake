@@ -33,7 +33,7 @@ ExternalProject_Include_Dependencies(${proj}
   PROJECT_VAR proj
   SUPERBUILD_VAR ${EXTENSION_NAME}_SUPERBUILD
   )
-
+list(APPEND ${proj}_DEPENDS FFTWF)
 ExternalProject_Add(${proj}
   ${${proj}_EP_ARGS}
   DOWNLOAD_COMMAND ""
