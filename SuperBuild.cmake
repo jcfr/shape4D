@@ -1,6 +1,9 @@
 #-----------------------------------------------------------------------------
 # Git protocol option
 #-----------------------------------------------------------------------------
+message(" — - — — in superbuild.cmake ")
+
+
 option(Slicer_USE_GIT_PROTOCOL "If behind a firewall turn this off to use http instead." ON)
 
 set(git_protocol "git")
@@ -17,12 +20,9 @@ set(ep_common_cxx_flags "${CMAKE_CXX_FLAGS_INIT} ${ADDITIONAL_CXX_FLAGS}")
 #-----------------------------------------------------------------------------
 # Project dependencies
 #-----------------------------------------------------------------------------
-find_package(Slicer REQUIRED)
-include(${Slicer_USE_FILE})
-mark_as_superbuild(Slicer_DIR)
 
 find_package(Git REQUIRED)
-mark_as_superbuild(GIT_EXECUTABLE)
+#mark_as_superbuild(GIT_EXECUTABLE)
 
 include(ExternalProject)
 
@@ -32,6 +32,9 @@ endforeach()
 
 set(proj ${SUPERBUILD_TOPLEVEL_PROJECT})
 list(APPEND ${proj}_DEPENDS FFTW)
+
+
+
 
 #-----------------------------------------------------------------------------
 # Slicer extension
@@ -44,7 +47,7 @@ if(${PROJECT_NAME}_BUILD_SLICER_EXTENSION)
   # Inside the shape4D-build, we need to know if we are building a Slicer extension
   # to know if we define the CMake `EXTENSION_*` variables.
   mark_as_superbuild(${EXTENSION_NAME}_BUILD_SLICER_EXTENSION:BOOL)
-endif()
+
 
 #-----------------------------------------------------------------------------
 # Set superbuild CMake variables
@@ -53,10 +56,11 @@ ExternalProject_Include_Dependencies(${proj}
   PROJECT_VAR proj
   SUPERBUILD_VAR ${EXTENSION_NAME}_SUPERBUILD
   )
-
+endif()
 #-----------------------------------------------------------------------------
 # Superbuild
 #-----------------------------------------------------------------------------
+
 ExternalProject_Add(${proj}
   ${${proj}_EP_ARGS}
   DOWNLOAD_COMMAND ""
@@ -76,8 +80,8 @@ ExternalProject_Add(${proj}
     -D${PROJECT_NAME}_SUPERBUILD:BOOL=OFF
     # We need to use Slicer to use `ExternalProject_Include_Dependencies()`
     # so we might as well use VTK and SEM
-    -DUSE_VTK:BOOL=ON
-    -DUSE_SEM:BOOL=ON
+    -DUSE_VTK:BOOL:BOOL=${USE_VTK}
+    -DUSE_SEM:BOOL:BOOL=${USE_SEM}
   INSTALL_COMMAND ""
   DEPENDS
     ${${proj}_DEPENDS}
