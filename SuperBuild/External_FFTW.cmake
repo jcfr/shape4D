@@ -61,6 +61,16 @@ if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
         set(${proj}_build ${CMAKE_CURRENT_BINARY_DIR}/${proj}-build)
         set(DOWNLOAD_URL http://fftw.org/fftw-3.3.6-pl2.tar.gz)
 
+	set(_configure_cflags)
+	#
+	# To fix compilation problem: relocation R_X86_64_32 against `a local symbol' can not be
+	# used when making a shared object; recompile with -fPIC
+	# See http://www.cmake.org/pipermail/cmake/2007-May/014350.html
+	#
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8) # 64-bit
+		set(_configure_cflags "-fPIC")
+	endif()
+
         # configure step
         set(_configure_script ${CMAKE_BINARY_DIR}/${proj}_configure_step.cmake)
         file(WRITE ${_configure_script}
@@ -68,8 +78,7 @@ if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
 		set(CMAKE_BINARY_DIR ${CMAKE_BINARY_DIR})
 		set(${proj}_WORKING_DIR \"${${proj}_SOURCE_DIR}\")
 		ExternalProject_Execute(${proj} \"configure\" sh configure
-		  --prefix=${${proj}_build}
-		  --enable-shared --enable-static=no
+		  --prefix=${${proj}_build}  CFLAGS=${_configure_cflags}
 		  )
 	")
 
@@ -93,29 +102,8 @@ if(NOT DEFINED ${proj}_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
         set(${proj}_BUILD_COMMAND ${CMAKE_COMMAND} -P ${_build_script})
         set(${proj}_INSTALL_COMMAND ${CMAKE_COMMAND} -P ${_install_script})
 
-
-	if(APPLE)
-
-        	set(${proj}_INSTALL_LIBRARIES
-            	  ${${proj}_ROOT}/lib/libfftw3.3.dylib
-            	  ${${proj}_ROOT}/lib/libfftw3.dylib
-            	  ${${proj}_ROOT}/lib/libfftw3.la
-        	)
-
-		set(${proj}_LIB
-	    	  ${${proj}_ROOT}/lib/libfftw3.dylib)
-
-	else()
-        	set(${proj}_INSTALL_LIBRARIES
-            	  ${${proj}_ROOT}/lib/libfftw3.so
-            	  ${${proj}_ROOT}/lib/libfftw3.so.3
-            	  ${${proj}_ROOT}/lib/libfftw3.so.3.5.6
-        	)
-
-		set(${proj}_LIB
-	    	  ${${proj}_ROOT}/lib/libfftw3.so)
-
-	endif()
+	set(${proj}_LIB
+	    ${${proj}_ROOT}/lib/libfftw3.a)
 
 	set(${proj}_INCLUDE_DIR 
 	    ${${proj}_ROOT}/include)
@@ -140,6 +128,5 @@ else()
 endif()
 
 mark_as_superbuild(${proj}_ROOT:PATH)
-mark_as_superbuild(${proj}_INSTALL_LIBRARIES:STRING)
 mark_as_superbuild(${proj}_INCLUDE_DIR:STRING)
 mark_as_superbuild(${proj}_LIB:STRING)
